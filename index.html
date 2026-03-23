@@ -140,6 +140,20 @@
                     <label for="onion-skin-toggle"
                         style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Show Onion Skin</label>
                 </div>
+                <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="tile-grid-toggle" style="cursor: pointer;">
+                    <label for="tile-grid-toggle"
+                        style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Tile Grid</label>
+                    <div style="display:flex; align-items:center; gap:4px; margin-left: auto;">
+                        <input type="number" id="tile-grid-w" value="16" min="1" max="512"
+                            style="width:44px; padding:3px 5px; font-size:0.8rem; border: 2px solid var(--border-color); background: var(--bg-panel); color: var(--text-main); box-shadow: none;"
+                            title="Tile Width">
+                        <span style="font-size:0.75rem;">x</span>
+                        <input type="number" id="tile-grid-h" value="16" min="1" max="512"
+                            style="width:44px; padding:3px 5px; font-size:0.8rem; border: 2px solid var(--border-color); background: var(--bg-panel); color: var(--text-main); box-shadow: none;"
+                            title="Tile Height">
+                    </div>
+                </div>
             </div>
 
             <div class="panel export-panel">

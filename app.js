@@ -17,6 +17,9 @@ const state = {
     isDrawing: false,
     isNudging: false,
     onionSkin: false,
+    tileGrid: false,
+    tileGridW: 16,
+    tileGridH: 16,
     undoStack: [],
     redoStack: [],
     selection: null,
@@ -705,6 +708,21 @@ function setupEventListeners() {
         updateUI();
     });
 
+    document.getElementById('tile-grid-toggle').addEventListener('change', (e) => {
+        state.tileGrid = e.target.checked;
+        updateUI();
+    });
+
+    document.getElementById('tile-grid-w').addEventListener('input', (e) => {
+        state.tileGridW = Math.max(1, parseInt(e.target.value) || 16);
+        updateUI();
+    });
+
+    document.getElementById('tile-grid-h').addEventListener('input', (e) => {
+        state.tileGridH = Math.max(1, parseInt(e.target.value) || 16);
+        updateUI();
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT') return;
 
@@ -1007,6 +1025,26 @@ function updateUI() {
 
         tmpCtx.putImageData(state.frames[state.currentFrameIndex], 0, 0);
         mainCtx.drawImage(tmpOverlayCanvas, 0, 0);
+
+        // Tile grid overlay drawn in canvas pixel space (before zoom)
+        if (state.tileGrid && !state.isPlaying) {
+            const gw = state.tileGridW;
+            const gh = state.tileGridH;
+            mainCtx.save();
+            mainCtx.strokeStyle = 'rgba(255, 0, 128, 0.6)';
+            mainCtx.lineWidth = 1 / state.canvasZoom; // 1 screen-pixel wide
+            mainCtx.beginPath();
+            for (let x = gw; x < state.canvasW; x += gw) {
+                mainCtx.moveTo(x, 0);
+                mainCtx.lineTo(x, state.canvasH);
+            }
+            for (let y = gh; y < state.canvasH; y += gh) {
+                mainCtx.moveTo(0, y);
+                mainCtx.lineTo(state.canvasW, y);
+            }
+            mainCtx.stroke();
+            mainCtx.restore();
+        }
 
         previewCtx.putImageData(state.frames[state.currentFrameIndex], 0, 0);
     }
