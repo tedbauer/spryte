@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Animator & Tileset UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Tools & Palette -->
+        <aside class="sidebar left-sidebar">
+            <h1 class="app-title">Spryte</h1>
+
+            <div class="panel">
+                <h2 class="panel-title">Project Management</h2>
+                <div style="display:flex; gap:8px;">
+                    <button id="btn-import-project" class="btn secondary-btn small-btn" style="flex:1;">Load .JSON +
+                        .PNG Files</button>
+                    <input type="file" id="import-file-input" multiple accept=".png,.json" style="display:none;">
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Tools</h2>
+                <div class="tool-grid" id="tools-container">
+                    <button class="tool-btn" data-tool="marquee" title="Marquee (M)">⬚</button>
+                    <button class="tool-btn active" data-tool="pencil" title="Pencil (P)">✏️</button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser (E)">🧹</button>
+                    <button class="tool-btn" data-tool="fill" title="Fill Bucket (F)">🪣</button>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button id="btn-undo" class="btn secondary-btn small-btn" style="flex:1" title="Undo (Ctrl+Z)"
+                        disabled>↶ Undo</button>
+                    <button id="btn-redo" class="btn secondary-btn small-btn" style="flex:1" title="Redo (Ctrl+Y)"
+                        disabled>↷ Redo</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <label
+                        style="font-size:0.75rem;color:var(--text-muted);display:flex;justify-content:space-between;">
+                        Brush Size <span id="brush-size-label">1px</span>
+                    </label>
+                    <input type="range" id="brush-size" min="1" max="10" value="1" style="width:100%; margin-top:4px;">
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Canvas Size</h2>
+                <div class="canvas-size-selector" style="display: flex; gap: 8px;">
+                    <input type="number" id="canvas-width" value="160" min="1" max="1024"
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-panel); color: var(--text-main);"
+                        title="Width">
+                    <span style="display:flex;align-items:center;">x</span>
+                    <input type="number" id="canvas-height" value="320" min="1" max="1024"
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-panel); color: var(--text-main);"
+                        title="Height">
+                </div>
+                <button id="btn-resize" class="btn secondary-btn small-btn" style="margin-top:8px; width: 100%;">Apply
+                    Resize</button>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Palette</h2>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="color-picker" value="#ff3366">
+                    <label for="color-picker" id="color-hex">#ff3366</label>
+                </div>
+                <div class="palette-grid" id="palette-grid">
+                    <!-- Swatches will be injected by JS -->
+                </div>
+            </div>
+
+        </aside>
+
+        <div class="middle-column">
+            <!-- Main Workspace: Canvas -->
+            <main class="workspace">
+                <div class="canvas-wrapper">
+                    <canvas id="main-canvas"></canvas>
+                    <div id="grid-overlay"></div>
+                    <div id="selection-box"
+                        style="display:none; position:absolute; border: 1px dashed #fff; box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000; pointer-events:none; z-index:10;">
+                    </div>
+                </div>
+            </main>
+
+            <!-- Bottom Timeline: Frames -->
+            <footer class="timeline">
+                <div class="timeline-header" style="justify-content: flex-start; gap: 20px; flex-wrap: wrap;">
+                    <div style="display:flex; align-items: center; gap: 20px;">
+                        <h3>Animation Tracks</h3>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="animation-select"
+                                style="width:150px; padding:6px; background-color: var(--bg-panel); border: 2px solid var(--border-color); color: var(--text-main);">
+                                <!-- Options injected by JS -->
+                            </select>
+                            <button id="btn-add-animation" class="btn small-btn">+ New</button>
+                            <button id="btn-rename-animation" class="btn small-btn">Rename</button>
+                            <button id="btn-delete-animation" class="btn small-btn text-danger">Delete</button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; align-items: center; gap: 20px; margin-left: auto;">
+                        <h3>Frames</h3>
+                        <div class="timeline-actions">
+                            <button id="btn-add-frame" class="btn small-btn">+ Add Frame</button>
+                            <button id="btn-duplicate-frame" class="btn small-btn">Duplicate</button>
+                            <button id="btn-delete-frame" class="btn small-btn text-danger">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="frames-container" id="frames-container">
+                    <!-- Frame thumbnails will be injected by JS -->
+                </div>
+            </footer>
+        </div>
+
+        <!-- Right Sidebar: Animation Preview -->
+        <aside class="sidebar right-sidebar">
+            <div class="panel preview-panel">
+                <h2 class="panel-title">Preview</h2>
+                <div class="preview-container">
+                    <canvas id="preview-canvas"></canvas>
+                </div>
+                <div class="preview-controls">
+                    <button id="btn-play-pause" class="btn primary-btn">Play</button>
+                    <div class="fps-control">
+                        <label for="fps-range">FPS: <span id="fps-label">12</span></label>
+                        <input type="range" id="fps-range" min="1" max="60" value="12">
+                    </div>
+                </div>
+                <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="onion-skin-toggle"
+                        style="accent-color: var(--accent-red); cursor: pointer;">
+                    <label for="onion-skin-toggle"
+                        style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Show Onion Skin</label>
+                </div>
+            </div>
+
+            <div class="panel export-panel">
+                <h2 class="panel-title">Data-Driven Export</h2>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px; line-height: 1.4;">Exports a
+                    master Unified Spritesheet alongside a JSON metadata layout strictly formatted for the game engine.
+                </p>
+                <button id="btn-export-spritesheet" class="btn secondary-btn" style="width:100%">Export .PNG +
+                    .JSON</button>
+            </div>
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
