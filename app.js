@@ -606,42 +606,64 @@ function setupEventListeners() {
             const imgUrl = URL.createObjectURL(pngFile);
             const img = new Image();
             img.onload = () => {
-                const tmpCanvas = document.createElement('canvas');
-                tmpCanvas.width = img.width;
-                tmpCanvas.height = img.height;
-                const tmpCtx = tmpCanvas.getContext('2d');
-                tmpCtx.drawImage(img, 0, 0);
-
-                const newAnimations = [];
-                for (const [animName, range] of Object.entries(metadata.animations)) {
-                    const startIdx = range[0];
-                    const endIdx = range[1];
-                    const numFrames = endIdx - startIdx + 1;
-                    const frames = [];
-                    for (let i = 0; i < numFrames; i++) {
-                        const globalIdx = startIdx + i;
-                        const col = globalIdx % cols;
-                        const row = Math.floor(globalIdx / cols);
-                        const frameData = tmpCtx.getImageData(col * w, row * h, w, h);
-                        frames.push(frameData);
+                try {
+                    if (!metadata.animations || !metadata.tile_size) {
+                        throw new Error("JSON metadata lacks required 'animations' or 'tile_size' structures. Is this a valid Spryte layout file?");
                     }
-                    newAnimations.push({ name: animName, frames: frames });
+
+                    const tmpCanvas = document.createElement('canvas');
+                    tmpCanvas.width = img.width;
+                    tmpCanvas.height = img.height;
+                    const tmpCtx = tmpCanvas.getContext('2d');
+                    tmpCtx.drawImage(img, 0, 0);
+
+                    const newAnimations = [];
+                    for (const [animName, range] of Object.entries(metadata.animations)) {
+                        const startIdx = range[0];
+                        const endIdx = range[1];
+                        const numFrames = endIdx - startIdx + 1;
+                        const frames = [];
+                        for (let i = 0; i < numFrames; i++) {
+                            const globalIdx = startIdx + i;
+                            const col = globalIdx % cols;
+                            const row = Math.floor(globalIdx / cols);
+                            let sx = col * w;
+                            let sy = row * h;
+
+                            if (sx + w > img.width || sy + h > img.height) {
+                                console.warn(`Frame ${globalIdx} out of bounds of the actual PNG sprite grid.`);
+                            }
+
+                            const frameData = tmpCtx.getImageData(sx, sy, w, h);
+                            frames.push(frameData);
+                        }
+                        newAnimations.push({ name: animName, frames: frames });
+                    }
+
+                    if (newAnimations.length === 0) {
+                        throw new Error("No valid animation sets were found in the JSON.");
+                    }
+
+                    // Inject payload
+                    state.canvasW = w;
+                    state.canvasH = h;
+                    state.animations = newAnimations;
+
+                    // Reboot UI
+                    document.getElementById('canvas-width').value = w;
+                    document.getElementById('canvas-height').value = h;
+                    initCanvas();
+                    initPreview();
+                    selectAnimation(0);
+                    clearHistory();
+                    URL.revokeObjectURL(imgUrl);
+                } catch (e) {
+                    alert("Error parsing imported metadata or image: " + e.message);
                 }
-
-                // Inject payload
-                state.canvasW = w;
-                state.canvasH = h;
-                state.animations = newAnimations;
-
-                // Reboot UI
-                document.getElementById('canvas-width').value = w;
-                document.getElementById('canvas-height').value = h;
-                initCanvas();
-                initPreview();
-                selectAnimation(0);
-                clearHistory();
-                URL.revokeObjectURL(imgUrl);
             };
+            img.onerror = () => {
+                alert("Critical error: Unable to load or decode the image format of the selected file.");
+            }
             img.src = imgUrl;
 
         } catch (err) {
