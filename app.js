@@ -420,6 +420,20 @@ function handlePointer(e) {
         if (targetColor) {
             floodFill(imgData, x, y, targetColor, replacementColor);
         }
+    } else if (state.tool === 'eyedropper' && e.type === 'pointerdown') {
+        const picked = getPixel(imgData, x, y);
+        if (picked && picked[3] > 0) {
+            const toHex = (v) => v.toString(16).padStart(2, '0');
+            const hex = `#${toHex(picked[0])}${toHex(picked[1])}${toHex(picked[2])}`;
+            state.color = hex;
+            document.getElementById('color-picker').value = hex;
+            document.getElementById('color-hex').innerText = hex;
+            document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        }
+        // Switch back to pencil after picking
+        state.tool = 'pencil';
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('[data-tool="pencil"]').classList.add('active');
     } else if (state.tool === 'marquee') {
         if (e.type === 'pointermove' && state.isDrawing && state.marqueeStart) {
             const minX = Math.min(state.marqueeStart.x, x);
@@ -581,10 +595,119 @@ function nudgeSelection(dx, dy) {
 }
 
 function setupEventListeners() {
-    // Project Importing
-    document.getElementById('btn-import-project').addEventListener('click', () => {
+    // ---- File Menu ----
+    const fileMenuBtn = document.getElementById('menu-file');
+    const fileMenuLabel = fileMenuBtn.querySelector('.menu-label');
+
+    fileMenuLabel.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileMenuBtn.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => {
+        fileMenuBtn.classList.remove('open');
+    });
+
+    // New
+    document.getElementById('cmd-new').addEventListener('click', () => {
+        fileMenuBtn.classList.remove('open');
+        const w = parseInt(prompt('Canvas width (px):', state.canvasW)) || state.canvasW;
+        const h = parseInt(prompt('Canvas height (px):', state.canvasH)) || state.canvasH;
+        if (confirm(`Create a new ${w}×${h} project? Unsaved work will be lost.`)) {
+            state.canvasW = w;
+            state.canvasH = h;
+            document.getElementById('canvas-width').value = w;
+            document.getElementById('canvas-height').value = h;
+            initCanvas();
+            initPreview();
+            initAnimations();
+            clearHistory();
+            updateUI();
+        }
+    });
+
+    // Open
+    document.getElementById('cmd-open').addEventListener('click', () => {
+        fileMenuBtn.classList.remove('open');
         document.getElementById('import-file-input').click();
     });
+
+    // Save As — prompts for location (falls back to auto-download)
+    async function doSaveAs() {
+        let maxFrames = 0;
+        state.animations.forEach(anim => { if (anim.frames.length > maxFrames) maxFrames = anim.frames.length; });
+        if (maxFrames === 0) return;
+
+        const cols = maxFrames;
+        const rows = state.animations.length;
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = state.canvasW * cols;
+        tmpCanvas.height = state.canvasH * rows;
+        const tmpCtx = tmpCanvas.getContext('2d');
+        tmpCtx.clearRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+
+        const metadata = {
+            image: 'spryte_spritesheet.png',
+            tile_size: [state.canvasW, state.canvasH],
+            columns: cols,
+            rows: rows,
+            animations: {}
+        };
+
+        state.animations.forEach((anim, rowIdx) => {
+            if (anim.frames.length === 0) return;
+            const startIndex = rowIdx * cols;
+            metadata.animations[anim.name] = [startIndex, startIndex + anim.frames.length - 1];
+            anim.frames.forEach((frame, colIdx) => {
+                tmpCtx.putImageData(frame, colIdx * state.canvasW, rowIdx * state.canvasH);
+            });
+        });
+
+        if (window.showSaveFilePicker) {
+            try {
+                const pngHandle = await window.showSaveFilePicker({
+                    suggestedName: metadata.image,
+                    types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }],
+                });
+                metadata.image = pngHandle.name;
+                const suggestedJsonName = pngHandle.name.replace(/\.png$/i, '.json');
+                const jsonHandle = await window.showSaveFilePicker({
+                    suggestedName: suggestedJsonName,
+                    types: [{ description: 'JSON Metadata', accept: { 'application/json': ['.json'] } }],
+                });
+                tmpCanvas.toBlob(async (blob) => {
+                    const w = await pngHandle.createWritable();
+                    await w.write(blob);
+                    await w.close();
+                }, 'image/png');
+                const jw = await jsonHandle.createWritable();
+                await jw.write(JSON.stringify(metadata, null, 2));
+                await jw.close();
+            } catch (e) { /* cancelled */ }
+        } else {
+            const link = document.createElement('a');
+            link.download = metadata.image;
+            link.href = tmpCanvas.toDataURL('image/png');
+            link.click();
+            const jl = document.createElement('a');
+            jl.download = 'spryte_metadata.json';
+            jl.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(metadata, null, 2));
+            setTimeout(() => jl.click(), 100);
+        }
+    }
+
+    document.getElementById('cmd-save-as').addEventListener('click', () => {
+        fileMenuBtn.classList.remove('open');
+        doSaveAs();
+    });
+
+    // Save — same as Save As for now (stateless, no file handle stored)
+    document.getElementById('cmd-save').addEventListener('click', () => {
+        fileMenuBtn.classList.remove('open');
+        doSaveAs();
+    });
+
+    // Open file handler
 
     document.getElementById('import-file-input').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
@@ -762,6 +885,10 @@ function setupEventListeners() {
         } else if (modKey && e.key.toLowerCase() === 'v') {
             e.preventDefault();
             pasteInPlace();
+        } else if (!modKey && e.key.toLowerCase() === 'i') {
+            state.tool = 'eyedropper';
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-tool="eyedropper"]').classList.add('active');
         }
     });
 
@@ -897,99 +1024,6 @@ function setupEventListeners() {
         document.getElementById('fps-label').innerText = state.fps;
     });
 
-    // Unity/Bevy JSON Exporter
-    document.getElementById('btn-export-spritesheet').addEventListener('click', async () => {
-        let maxFrames = 0;
-        state.animations.forEach(anim => {
-            if (anim.frames.length > maxFrames) maxFrames = anim.frames.length;
-        });
-
-        if (maxFrames === 0) return;
-
-        const cols = maxFrames;
-        const rows = state.animations.length;
-
-        const tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = state.canvasW * cols;
-        tmpCanvas.height = state.canvasH * rows;
-        const tmpCtx = tmpCanvas.getContext('2d');
-        tmpCtx.clearRect(0, 0, tmpCanvas.width, tmpCanvas.height);
-
-        const metadata = {
-            image: "spryte_spritesheet.png",
-            tile_size: [state.canvasW, state.canvasH],
-            columns: cols,
-            rows: rows,
-            animations: {}
-        };
-
-        state.animations.forEach((anim, rowIdx) => {
-            if (anim.frames.length === 0) return;
-            const startIndex = rowIdx * cols;
-            const endIndex = startIndex + anim.frames.length - 1;
-            metadata.animations[anim.name] = [startIndex, endIndex];
-
-            anim.frames.forEach((frame, colIdx) => {
-                tmpCtx.putImageData(frame, colIdx * state.canvasW, rowIdx * state.canvasH);
-            });
-        });
-
-        const usePicker = !!window.showSaveFilePicker;
-
-        if (usePicker) {
-            try {
-                const pngHandle = await window.showSaveFilePicker({
-                    suggestedName: 'spryte_spritesheet.png',
-                    types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }],
-                });
-
-                metadata.image = pngHandle.name;
-
-                let suggestedJsonName = pngHandle.name;
-                if (suggestedJsonName.endsWith('.png')) {
-                    suggestedJsonName = suggestedJsonName.replace('.png', '.json');
-                } else {
-                    suggestedJsonName += '.json';
-                }
-
-                const jsonHandle = await window.showSaveFilePicker({
-                    suggestedName: suggestedJsonName,
-                    types: [{ description: 'JSON Metadata', accept: { 'application/json': ['.json'] } }],
-                });
-
-                // Write PNG
-                tmpCanvas.toBlob(async (blob) => {
-                    const pngWritable = await pngHandle.createWritable();
-                    await pngWritable.write(blob);
-                    await pngWritable.close();
-                }, 'image/png');
-
-                // Write JSON
-                const jsonWritable = await jsonHandle.createWritable();
-                await jsonWritable.write(JSON.stringify(metadata, null, 2));
-                await jsonWritable.close();
-
-            } catch (e) {
-                console.log("Save cancelled or failed", e);
-                return;
-            }
-        } else {
-            // Fallback for browsers without File System API
-            // Save PNG
-            const dataUrl = tmpCanvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = metadata.image;
-            link.href = dataUrl;
-            link.click();
-
-            // Save JSON
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(metadata, null, 2));
-            const jsonLink = document.createElement('a');
-            jsonLink.download = "spryte_metadata.json";
-            jsonLink.href = dataStr;
-            setTimeout(() => jsonLink.click(), 100);
-        }
-    });
 }
 
 const canvas = document.getElementById('main-canvas');
@@ -1026,26 +1060,30 @@ function updateUI() {
         tmpCtx.putImageData(state.frames[state.currentFrameIndex], 0, 0);
         mainCtx.drawImage(tmpOverlayCanvas, 0, 0);
 
-        // Tile grid overlay drawn in canvas pixel space (before zoom)
-        if (state.tileGrid && !state.isPlaying) {
-            const gw = state.tileGridW;
-            const gh = state.tileGridH;
-            mainCtx.save();
-            mainCtx.strokeStyle = 'rgba(255, 0, 128, 0.6)';
-            mainCtx.lineWidth = 1 / state.canvasZoom; // 1 screen-pixel wide
-            mainCtx.beginPath();
-            for (let x = gw; x < state.canvasW; x += gw) {
-                mainCtx.moveTo(x, 0);
-                mainCtx.lineTo(x, state.canvasH);
-            }
-            for (let y = gh; y < state.canvasH; y += gh) {
-                mainCtx.moveTo(0, y);
-                mainCtx.lineTo(state.canvasW, y);
-            }
-            mainCtx.stroke();
-            mainCtx.restore();
-        }
-
         previewCtx.putImageData(state.frames[state.currentFrameIndex], 0, 0);
+    }
+
+    updateTileGridOverlay();
+}
+
+function updateTileGridOverlay() {
+    const overlay = document.getElementById('grid-overlay');
+    const pixelGridLayer =
+        `linear-gradient(to right, rgba(0, 0, 0, 0.15) 1px, transparent 1px),
+         linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 1px, transparent 1px)`;
+    const pixelCellSize = `${state.canvasZoom}px`;
+
+    if (state.tileGrid) {
+        const tileW = state.tileGridW * state.canvasZoom;
+        const tileH = state.tileGridH * state.canvasZoom;
+        const tileGridLayer =
+            `linear-gradient(to right, rgba(220, 0, 100, 0.75) 1px, transparent 1px),
+             linear-gradient(to bottom, rgba(220, 0, 100, 0.75) 1px, transparent 1px)`;
+        overlay.style.backgroundImage = `${tileGridLayer}, ${pixelGridLayer}`;
+        // Must specify 4 sizes — one per gradient layer — or CSS will cycle the 2 values incorrectly
+        overlay.style.backgroundSize = `${tileW}px ${tileH}px, ${tileW}px ${tileH}px, ${pixelCellSize} ${pixelCellSize}, ${pixelCellSize} ${pixelCellSize}`;
+    } else {
+        overlay.style.backgroundImage = pixelGridLayer;
+        overlay.style.backgroundSize = `${pixelCellSize} ${pixelCellSize}`;
     }
 }

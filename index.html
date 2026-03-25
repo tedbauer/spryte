@@ -4,26 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Animator & Tileset UI</title>
+    <title>Spryte</title>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <!-- Menu Bar -->
+    <nav class="menubar">
+        <span class="menubar-brand">Spryte</span>
+        <div class="menu-item" id="menu-file">
+            <span class="menu-label">File</span>
+            <div class="menu-dropdown" id="menu-file-dropdown">
+                <button class="menu-cmd" id="cmd-new">New…</button>
+                <button class="menu-cmd" id="cmd-open">Open…</button>
+                <div class="menu-divider"></div>
+                <button class="menu-cmd" id="cmd-save">Save</button>
+                <button class="menu-cmd" id="cmd-save-as">Save As…</button>
+            </div>
+        </div>
+        <input type="file" id="import-file-input" multiple accept=".png,.json" style="display:none;">
+    </nav>
+
     <div class="app-container">
         <!-- Sidebar: Tools & Palette -->
         <aside class="sidebar left-sidebar">
-            <h1 class="app-title">Spryte</h1>
-
-            <div class="panel">
-                <h2 class="panel-title">Project Management</h2>
-                <div style="display:flex; gap:8px;">
-                    <button id="btn-import-project" class="btn secondary-btn small-btn" style="flex:1;">Load .JSON +
-                        .PNG Files</button>
-                    <input type="file" id="import-file-input" multiple accept=".png,.json" style="display:none;">
-                </div>
-            </div>
-
             <div class="panel">
                 <h2 class="panel-title">Tools</h2>
                 <div class="tool-grid" id="tools-container">
@@ -31,6 +36,7 @@
                     <button class="tool-btn active" data-tool="pencil" title="Pencil (P)">✏️</button>
                     <button class="tool-btn" data-tool="eraser" title="Eraser (E)">🧹</button>
                     <button class="tool-btn" data-tool="fill" title="Fill Bucket (F)">🪣</button>
+                    <button class="tool-btn" data-tool="eyedropper" title="Eyedropper (I)">🔍</button>
                 </div>
 
                 <div style="display:flex; gap:8px; margin-top:8px;">
@@ -51,13 +57,11 @@
 
             <div class="panel">
                 <h2 class="panel-title">Canvas Size</h2>
-                <div class="canvas-size-selector" style="display: flex; gap: 8px;">
-                    <input type="number" id="canvas-width" value="160" min="1" max="1024"
-                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-panel); color: var(--text-main);"
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" id="canvas-width" value="160" min="1" max="1024" style="width: 100%;"
                         title="Width">
                     <span style="display:flex;align-items:center;">x</span>
-                    <input type="number" id="canvas-height" value="320" min="1" max="1024"
-                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-panel); color: var(--text-main);"
+                    <input type="number" id="canvas-height" value="320" min="1" max="1024" style="width: 100%;"
                         title="Height">
                 </div>
                 <button id="btn-resize" class="btn secondary-btn small-btn" style="margin-top:8px; width: 100%;">Apply
@@ -74,7 +78,6 @@
                     <!-- Swatches will be injected by JS -->
                 </div>
             </div>
-
         </aside>
 
         <div class="middle-column">
@@ -135,10 +138,9 @@
                     </div>
                 </div>
                 <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="onion-skin-toggle"
-                        style="accent-color: var(--accent-red); cursor: pointer;">
+                    <input type="checkbox" id="onion-skin-toggle" style="cursor: pointer;">
                     <label for="onion-skin-toggle"
-                        style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Show Onion Skin</label>
+                        style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Onion Skin</label>
                 </div>
                 <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
                     <input type="checkbox" id="tile-grid-toggle" style="cursor: pointer;">
@@ -154,15 +156,6 @@
                             title="Tile Height">
                     </div>
                 </div>
-            </div>
-
-            <div class="panel export-panel">
-                <h2 class="panel-title">Data-Driven Export</h2>
-                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px; line-height: 1.4;">Exports a
-                    master Unified Spritesheet alongside a JSON metadata layout strictly formatted for the game engine.
-                </p>
-                <button id="btn-export-spritesheet" class="btn secondary-btn" style="width:100%">Export .PNG +
-                    .JSON</button>
             </div>
         </aside>
     </div>

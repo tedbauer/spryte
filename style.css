@@ -33,6 +33,97 @@ body {
     overflow: hidden;
 }
 
+/* Menu Bar */
+.menubar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background-color: var(--bg-darker);
+    border-bottom: 2px solid var(--border-color);
+    padding: 0 16px;
+    height: 40px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+}
+
+.menubar-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-right: 24px;
+    letter-spacing: 0.5px;
+}
+
+.menu-item {
+    position: relative;
+}
+
+.menu-label {
+    padding: 0 14px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 700;
+    user-select: none;
+}
+
+.menu-label:hover {
+    background-color: var(--text-main);
+    color: var(--bg-panel);
+}
+
+.menu-item.open .menu-label {
+    background-color: var(--text-main);
+    color: var(--bg-panel);
+}
+
+.menu-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0 var(--shadow-color);
+    min-width: 160px;
+    flex-direction: column;
+    z-index: 200;
+}
+
+.menu-item.open .menu-dropdown {
+    display: flex;
+}
+
+.menu-cmd {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    font-weight: 400;
+}
+
+.menu-cmd:last-child {
+    border-bottom: none;
+}
+
+.menu-cmd:hover {
+    background-color: var(--text-main);
+    color: var(--bg-panel);
+}
+
+.menu-divider {
+    height: 2px;
+    background-color: var(--border-color);
+    margin: 0;
+}
+
 /* Layout */
 .app-container {
     display: flex;
@@ -76,14 +167,6 @@ body {
 }
 
 /* Typography */
-.app-title {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: 0px;
-    margin-bottom: 30px;
-    color: var(--text-main);
-}
-
 .panel {
     margin-bottom: 24px;
     display: flex;
@@ -242,6 +325,8 @@ input[type="range"] {
     position: relative;
     border: 2px solid var(--border-color);
     box-shadow: 6px 6px 0 var(--shadow-color);
+    box-sizing: content-box;
+    /* width/height = inner canvas area, border is additive */
     background-color: #fff;
     background-image:
         linear-gradient(45deg, #e5e5e5 25%, transparent 25%, transparent 75%, #e5e5e5 75%, #e5e5e5),
